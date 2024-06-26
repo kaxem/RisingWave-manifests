@@ -1,0 +1,68 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risingwave-etcd-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingwave-etcd-0
+  template:
+    metadata:
+      labels:
+        app: risingwave-etcd-0
+     
+    spec:
+      containers:
+      - name: risingwave-etcd-0
+        image: coreos/etcd:v3.5.10
+        command:
+          - /usr/local/bin/etcd
+          - "--listen-client-urls"
+          - "http://0.0.0.0:2388"
+          - "--advertise-client-urls"
+          - "http://risingwave-etcd-0:2388"
+          - "--listen-peer-urls"
+          - "http://0.0.0.0:2389"
+          - "--initial-advertise-peer-urls"
+          - "http://risingwave-etcd-0:2389"
+          - "--listen-metrics-urls"
+          - "http://0.0.0.0:2379"
+          - "--name"
+          - risedev-meta
+          - "--max-txn-ops"
+          - "999999"
+          - "--max-request-bytes"
+          - "10485760"
+          - "--auto-compaction-mode"
+          - periodic
+          - "--auto-compaction-retention"
+          - 1m
+          - "--snapshot-count"
+          - "10000"
+          - "--data-dir"
+          - /etcd-data
+        ports:
+        - containerPort: 2388
+        - containerPort: 2389
+        - containerPort: 2379
+        volumeMounts:
+        - name: etcd-data
+          mountPath: /etcd-data
+      volumes:
+      - name: etcd-data
+        persistentVolumeClaim:
+          claimName: risingwave-etcd-pvc
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingwave-etcd-0
+spec:
+  selector:
+    app: risingwave-etcd-0
+  ports:
+    - protocol: TCP
+      port: 2388
+      targetPort: 2388

@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risingwave-frontend-node-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingwave-frontend-node-0
+  template:
+    metadata:
+      labels:
+        app: risingwave-frontend-node-0
+      annotations:
+        prometheus.io/port: '2222'
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+    spec:
+      containers:
+      - name: risingwave-frontend-node-0
+        image: risingwavelabs/risingwave:v1.8.2
+        command:
+          - /risingwave/bin/risingwave
+          - "frontend-node"
+          - "--listen-addr"
+          - "0.0.0.0:4566"
+          - "--meta-addr"
+          - "http://risingwave-meta-node-0:5690"
+          - "--advertise-addr"
+          - "risingwave-frontend-node-0:4566"
+          - "--config-path"
+          - /risingwave-config/risingwave.toml
+          - "--prometheus-listener-addr"
+          - "0.0.0.0:2222"
+        ports:
+        - containerPort: 4566
+        - containerPort: 2222
+        volumeMounts:
+        - name: rising-wave-config
+          mountPath: /risingwave-config
+      volumes:
+      - name: rising-wave-config
+        configMap:
+          name: rising-wave-config
+          items:
+            - key: risingwave.toml
+              path: risingwave.toml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingwave-frontend-node-0
+spec:
+  selector:
+    app: risingwave-frontend-node-0
+  type: NodePort
+  ports:
+    - protocol: TCP
+      port: 4566
+      targetPort: 4566

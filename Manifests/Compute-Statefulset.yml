@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risingwave-compute-node-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingwave-compute-node-0
+  template:
+    metadata:
+      labels:
+        app: risingwave-compute-node-0
+      annotations:
+        prometheus.io/port: '1222'
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+ 
+ 
+    spec:
+      containers:
+      - name: risingwave-compute-node-0
+        image: risingwavelabs/risingwave:v1.8.2
+        command:
+          - /risingwave/bin/risingwave
+          - "compute-node"
+          - "--listen-addr"
+          - "0.0.0.0:5688"
+          - "--advertise-addr"
+          - "risingwave-compute-node-0:5688"
+          - "--prometheus-listener-addr"
+          - "0.0.0.0:1222"
+          - "--meta-address"
+          - "http://risingwave-meta-node-0:5690"
+          - "--config-path"
+          - /risingwave-config/risingwave.toml
+        ports:
+        - containerPort: 5688
+        - containerPort: 1222
+        volumeMounts:
+        - name: rising-wave-config
+          mountPath: /risingwave-config
+      volumes:
+      - name: rising-wave-config
+        configMap:
+          name: rising-wave-config
+          items:
+            - key: risingwave.toml
+              path: risingwave.toml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingwave-compute-node-0
+spec:
+  selector:
+    app: risingwave-compute-node-0
+  ports:
+    - protocol: TCP
+      port: 5688
+      targetPort: 5688

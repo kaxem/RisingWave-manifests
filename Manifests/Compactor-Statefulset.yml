@@ -1,0 +1,60 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risingwave-compactor-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingwave-compactor-0
+  template:
+    metadata:
+      labels:
+        app: risingwave-compactor-0
+      annotations:
+        prometheus.io/port: '1260'
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+     
+    spec:
+      containers:
+      - name: risingwave-compactor-0
+        image: risingwavelabs/risingwave:v1.8.2
+        command:
+          - /risingwave/bin/risingwave
+          - "compactor-node"
+          - "--listen-addr"
+          - "0.0.0.0:6660"
+          - "--advertise-addr"
+          - "risingwave-compactor-0:6660"
+          - "--prometheus-listener-addr"
+          - "0.0.0.0:1260"
+          - "--meta-address"
+          - "http://risingwave-meta-node-0:5690"
+          - "--config-path"
+          - /risingwave-config/risingwave.toml
+        ports:
+        - containerPort: 6660
+        - containerPort: 1260
+        volumeMounts:
+        - name: rising-wave-config
+          mountPath: /risingwave-config
+      volumes:
+      - name: rising-wave-config
+        configMap:
+          name: rising-wave-config
+          items:
+            - key: risingwave.toml
+              path: risingwave.toml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingwave-compactor-0
+spec:
+  selector:
+    app: risingwave-compactor-0
+  ports:
+    - protocol: TCP
+      port: 6660
+      targetPort: 6660

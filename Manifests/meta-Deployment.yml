@@ -1,0 +1,77 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: risingwave-meta-node-0
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: risingwave-meta-node-0
+  template:
+    metadata:
+      labels:
+        app: risingwave-meta-node-0
+      annotations:
+        prometheus.io/port: '1250'
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+    spec:
+      containers:
+      - name: risingwave-meta-node-0
+        image: risingwavelabs/risingwave:v1.8.2
+        command:
+          - /risingwave/bin/risingwave
+          - "meta-node"
+          - "--listen-addr"
+          - "0.0.0.0:5690"
+          - "--advertise-addr"
+          - "risingwave-meta-node-0:5690"
+          - "--dashboard-host"
+          - "0.0.0.0:5691"
+          - "--prometheus-host"
+          - "0.0.0.0:1250"
+          - "--prometheus-endpoint"
+          - "http://192.168.10.99:32698"
+          - "--backend"
+          - etcd
+          - "--etcd-endpoints"
+          - "risingwave-etcd-0.common:2388"
+          - "--state-store"
+          - "hummock+minio://minio:minio123@192.168.10.99:31524/risingwave-hummock-1"
+          - "--data-directory"
+          - "risingwave-hummock"
+          - "--config-path"
+          - /risingwave-config/risingwave.toml
+        ports:
+        - containerPort: 5690
+        - containerPort: 1250
+        - containerPort: 5691
+        volumeMounts:
+        - name: rising-wave-config
+          mountPath: /risingwave-config
+      volumes:
+      - name: rising-wave-config
+        configMap:
+          name: rising-wave-config
+          items:
+            - key: risingwave.toml
+              path: risingwave.toml
+ 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: risingwave-meta-node-0
+spec:
+  selector:
+    app: risingwave-meta-node-0
+  type: NodePort
+  ports:
+    - name: meta-addr
+      protocol: TCP
+      port: 5690
+      targetPort: 5690
+    - name: meta-dashboard
+      protocol: TCP
+      port: 5691
+      targetPort: 5691
