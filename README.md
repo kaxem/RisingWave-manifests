@@ -8,6 +8,7 @@ Before you start, make sure you have:
 * Minimum:
     2 CPU cores
     8 GB memory
+* Prometheus up and running
 
 ## Steps to Deploy RisingWave with MinIO:
 First create a bucket in minio named `risingwave-hummock-1` (any name is ok but you should change address in meta-deployment file)
@@ -29,3 +30,10 @@ spec:
                 - <node-name>
 ```
 **2- "--meta-address" value MUST have `http://` and it's value is meta endpoint address in k8s**
+3- Prometheus metrics could be enabled/diabled with: 
+```
+annotations:
+        prometheus.io/port: '1222'
+        prometheus.io/scrape: 'true'
+        prometheus.io/path: '/'
+```
